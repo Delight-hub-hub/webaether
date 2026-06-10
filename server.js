@@ -6,25 +6,26 @@ const clientRoutes = require("./routes/clientRoutes");
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://aethersystems.co.za",
-  "https://www.aethersystems.co.za"
+const allowedOriginPatterns = [
+  /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/i,
+  /^https:\/\/([a-z0-9-]+\.)*aethersystems\.co\.za$/i,
+  /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/i,
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOriginPatterns.some((pattern) => pattern.test(origin))) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    return callback(null, false);
   },
   credentials: true
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use("/api/clients", clientRoutes);
 
 //connect database
@@ -35,8 +36,13 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/', (req, res) => {
     res.send('Welcome to Aether Systems API');
 })
-const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-});
+  });
+}
+
+module.exports = app;
